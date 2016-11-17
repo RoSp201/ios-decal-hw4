@@ -15,7 +15,7 @@ class PlayerViewController: UIViewController {
     var scAPI: SoundCloudAPI!
 
     var currentIndex: Int!
-    var player: AVQueuePlayer!
+    var player: AVPlayer!
     var trackImageView: UIImageView!
 
     var playPauseButton: UIButton!
@@ -38,7 +38,7 @@ class PlayerViewController: UIViewController {
         self.didPlay = []
         currentIndex = 0
 
-        player = AVQueuePlayer()
+        player = AVPlayer()
 
         loadVisualElements()
         loadPlayerButtons()
@@ -134,8 +134,38 @@ class PlayerViewController: UIViewController {
         let clientID = NSDictionary(contentsOfFile: path!)?.value(forKey: "client_id") as! String
         let track = tracks[currentIndex]
         let url = URL(string: "https://api.soundcloud.com/tracks/\(track.id as Int)/stream?client_id=\(clientID)")!
+        
         // FILL ME IN
-
+        let song = AVPlayerItem(url: url)
+        if didPlay.isEmpty
+        {
+            player = AVPlayer(playerItem: song)
+            didPlay.append(track)
+        }
+        else {
+            var found = false
+            for t in didPlay {
+                if track.id == t.id {
+                    found = true
+                    break
+                }
+            }
+            if found == false {
+                didPlay.append(track)
+            }
+        }
+        if paused
+        {
+            player.play()
+            sender.isSelected = true
+            paused = false
+        }
+        else
+        {
+            player.pause()
+            sender.isSelected = false
+            paused = true
+        }
     }
 
     /*
@@ -146,6 +176,25 @@ class PlayerViewController: UIViewController {
      */
     func nextTrackTapped(_ sender: UIButton) {
         // FILL ME IN
+        if (currentIndex + 1) < tracks.count
+        {
+            currentIndex = currentIndex + 1
+            loadTrackElements()
+            let path = Bundle.main.path(forResource: "Info", ofType: "plist")
+            let clientID = NSDictionary(contentsOfFile: path!)?.value(forKey: "client_id") as! String
+            let track = tracks[currentIndex]
+            let url = URL(string: "https://api.soundcloud.com/tracks/\(track.id as Int)/stream?client_id=\(clientID)")!
+            let song = AVPlayerItem(url:url)
+            player.replaceCurrentItem(with: song)
+            if self.player.currentItem?.status == .readyToPlay {
+                player.play()
+                paused = false
+            }
+        }
+        else
+        {
+            print("Reached end of playlist. No more tracks.")
+        }
     }
 
     /*
@@ -160,7 +209,38 @@ class PlayerViewController: UIViewController {
 
     func previousTrackTapped(_ sender: UIButton) {
         // FILL ME IN
+        if player.currentItem != nil
+        {
+            if (player.currentItem?.currentTime())! > CMTimeMakeWithSeconds(3, 1)
+            {
+                player.seek(to: CMTimeMakeWithSeconds(0, 60000))
+            }
+            else
+            {
+                if (currentIndex - 1) >= 0
+                {
+                    currentIndex = currentIndex - 1
+                    let path = Bundle.main.path(forResource: "Info", ofType: "plist")
+                    let clientID = NSDictionary(contentsOfFile: path!)?.value(forKey: "client_id") as! String
+                    let track = tracks[currentIndex]
+                    let url = URL(string: "https://api.soundcloud.com/tracks/\(track.id as Int)/stream?client_id=\(clientID)")!
+                    let song = AVPlayerItem(url:url)
+                    loadTrackElements()
+                    player.replaceCurrentItem(with: song)
+                    if self.player.currentItem?.status == .readyToPlay {
+                        player.play()
+                        paused = false
+                    }
+                }
+                else
+                {
+                    print("first song in list")
+                }
+                
+            }
+        }
     }
+
 
 
     func asyncLoadTrackImage(_ track: Track) {
